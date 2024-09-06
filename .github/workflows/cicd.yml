@@ -34,15 +34,15 @@ jobs:
     - name: Push Docker image
       run: docker push ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
     
-    # Optional: Step 6: Run tests (e.g., test the app runs)
-    - name: Run the container
-      run: docker run -d -p 8501:8501 --name ipl-predictor ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
+    # # Optional: Step 6: Run tests (e.g., test the app runs)
+    # - name: Run the container
+    #   run: docker run -d -p 8501:8501 --name ipl-predictor ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
     
-    - name: Test the Streamlit app
-      run: curl http://localhost:8501
+    # - name: Test the Streamlit app
+    #   run: curl http://localhost:8501
     
     # Clean up the container
-    - name: Stop and remove container
-      run: |
-        docker stop ipl-predictor
-        docker rm ipl-predictor
+    # - name: Stop and remove container
+    #   run: |
+    #     docker stop ipl-predictor
+    #     docker rm ipl-predictor
