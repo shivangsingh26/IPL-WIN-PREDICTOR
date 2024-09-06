@@ -1,43 +1,80 @@
-name: CI/CD Docker Pipeline for Streamlit App
+name: CI/CD Docker Pipeline for IPL-WIN-Predictor
 
-# Run this workflow on every push to the main branch
 on:
   push:
     branches:
       - master
 
-# Define the jobs that will be run
 jobs:
-  build:
+  # Job 1: Build and Test (Python code)
+  build_and_test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # Step 1: Checkout the code from the repository
+    # Step 1: Checkout code from the repository
     - name: Checkout code
       uses: actions/checkout@v3
-    
-    # Step 2: Set up Docker on the machine
+
+    # Step 2: Set up Python 3.9 (or the version you require)
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    # Step 3: Install Python dependencies from requirements.txt
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # Step 4: Run pytest to check for any issues in the Python code
+    - name: Run pytest
+      run: |
+        pip install pytest requests
+        pytest test_app.py  # Make sure this file exists with the tests
+
+  # Job 2: Build and Publish (Docker Deployment)
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    # This job will only run if build_and_test completes successfully
+    needs: build_and_test
+
+    steps:
+    # Step 1: Checkout the code again
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Docker
     - name: Set up Docker
       uses: docker/setup-buildx-action@v2
-    
-    # Step 3: Log in to Docker Hub (You need to set up secrets for DOCKER_USERNAME and DOCKER_PASSWORD in your repo settings)
+
+    # Step 3: Log in to Docker Hub using secrets (set these in your GitHub repository settings)
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    # Step 4: Build the Docker image and push it to Docker Hub
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./DockerFile
-        push: true
-        tags: ${{secrets.DOCKER_USERNAME}}/flask-app:latest
-            
-    - name: Image digest
-      run: echo ${{steps.build-and-publish.outputs.digest}}
-    
-    - name: Test the Streamlit app
-      run: curl http://localhost:8501
+
+    # Step 4: Build the Docker image
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest .
+
+    # Step 5: Run the Docker container to ensure the image works
+    - name: Run Streamlit container
+      run: docker run -d -p 8501:8501 --name ipl-predictor ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
+
+    # Step 6: Test if the app is running using curl
+    - name: Test if the app is running
+      run: |
+        sleep 15  # Wait for the app to start
+        curl -f http://localhost:8501 || exit 1
+
+    # Step 7: Push the Docker image to Docker Hub
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
+
+    # Step 8: Clean up the container
+    - name: Stop and remove container
+      run: |
+        docker stop ipl-predictor
+        docker rm ipl-predictor
