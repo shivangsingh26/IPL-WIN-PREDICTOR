@@ -1,9 +1,9 @@
-name: CI/CD Docker Pipeline for IPL-WIN-Predictor
+name: CI/CD Docker Pipeline for Truefoundry RAG Registry
 
 on:
   push:
     branches:
-      - master
+      - main  # Adjust the branch name as needed
 
 jobs:
   # Job 1: Build and Test (Python code)
@@ -28,7 +28,7 @@ jobs:
         source venv/bin/activate  # Activate virtual environment
         pip install -r requirements.txt  # Install dependencies
 
-    # Step 4: Start the Streamlit/Flask app in the background
+    # Step 4: Start the Streamlit/Flask app in the background (optional)
     - name: Start the app
       run: |
         source venv/bin/activate  # Activate virtual environment
@@ -42,7 +42,7 @@ jobs:
         pip install pytest requests  # Make sure pytest and requests are installed
         pytest test_app.py --maxfail=1 --disable-warnings -v  # Run tests
 
-    # Step 6: Stop the app after testing
+    # Step 6: Stop the app after testing (optional)
     - name: Stop the app
       run: |
         pkill -f 'streamlit'  # Adjust if you're not using Streamlit
@@ -63,32 +63,133 @@ jobs:
     - name: Set up Docker
       uses: docker/setup-buildx-action@v2
 
-    # Step 3: Log in to Docker Hub using secrets (set these in your GitHub repository settings)
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
+    # Step 3: Login to AWS ECR
+    - name: Login to AWS ECR
+      uses: aws-actions/amazon-ecr-login@v1
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        registry: 992382843941.dkr.ecr.us-east-1.amazonaws.com
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     # Step 4: Build the Docker image
     - name: Build Docker image
-      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest -f DockerFile .
-
-    # Step 5: Run the Docker container to ensure the image works
-    - name: Run Streamlit container
-      run: docker run -d -p 8501:8501 --name ipl-predictor ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
-
-    # Step 6: Test if the app is running using curl
-    - name: Test if the app is running
+      env:
+        ECR_REGISTRY: 992382843941.dkr.ecr.us-east-1.amazonaws.com
+        IMAGE_TAG: ${{ github.sha }}
       run: |
+        docker build -t $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG .
+
+    # Step 5: Test if the Docker container runs successfully (optional)
+    - name: Run Docker container
+      run: |
+        docker run -d -p 8501:8501 --name truefoundry_rag_test $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG
         sleep 15  # Wait for the app to start
-        curl -f http://localhost:8501 || exit 1
+        curl -f http://localhost:8501 || exit 1  # Test the app
 
-    # Step 7: Push the Docker image to Docker Hub
+    # Step 6: Push the Docker image to AWS ECR
     - name: Push Docker image
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest 
-    # Step 8: Clean up the container
-    - name: Stop and remove container
+      env:
+        ECR_REGISTRY: 992382843941.dkr.ecr.us-east-1.amazonaws.com
+        IMAGE_TAG: ${{ github.sha }}
+      run: docker push $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG
+
+    # Step 7: Clean up the container (optional)
+    - name: Stop and remove Docker container
       run: |
-        docker stop ipl-predictor
-        docker rm ipl-predictor
+        docker stop truefoundry_rag_test
+        docker rm truefoundry_rag_test
+
+# name: CI/CD Docker Pipeline for IPL-WIN-Predictor
+
+# on:
+#   push:
+#     branches:
+#       - master
+
+# jobs:
+#   # Job 1: Build and Test (Python code)
+#   build_and_test:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     # Step 1: Checkout code from the repository
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+
+#     # Step 2: Set up Python 3.9 (or the version you require)
+#     - name: Set up Python 3.9
+#       uses: actions/setup-python@v4
+#       with:
+#         python-version: 3.9
+
+#     # Step 3: Install Python dependencies inside a virtual environment
+#     - name: Install dependencies
+#       run: |
+#         python -m venv venv  # Create virtual environment
+#         source venv/bin/activate  # Activate virtual environment
+#         pip install -r requirements.txt  # Install dependencies
+
+#     # Step 4: Start the Streamlit/Flask app in the background
+#     - name: Start the app
+#       run: |
+#         source venv/bin/activate  # Activate virtual environment
+#         nohup streamlit run app.py &  # Start Streamlit app in background
+#         sleep 10  # Wait for 10 seconds to allow the app to start
+
+#     # Step 5: Run pytest to check for any issues in the Python code
+#     - name: Run pytest
+#       run: |
+#         source venv/bin/activate  # Activate virtual environment
+#         pip install pytest requests  # Make sure pytest and requests are installed
+#         pytest test_app.py --maxfail=1 --disable-warnings -v  # Run tests
+
+#     # Step 6: Stop the app after testing
+#     - name: Stop the app
+#       run: |
+#         pkill -f 'streamlit'  # Adjust if you're not using Streamlit
+
+#   # Job 2: Build and Publish (Docker Deployment)
+#   build_and_publish:
+#     runs-on: ubuntu-latest
+
+#     # This job will only run if build_and_test completes successfully
+#     needs: build_and_test
+
+#     steps:
+#     # Step 1: Checkout the code again
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+
+#     # Step 2: Set up Docker
+#     - name: Set up Docker
+#       uses: docker/setup-buildx-action@v2
+
+#     # Step 3: Log in to Docker Hub using secrets (set these in your GitHub repository settings)
+#     - name: Log in to Docker Hub
+#       uses: docker/login-action@v2
+#       with:
+#         username: ${{ secrets.DOCKER_USERNAME }}
+#         password: ${{ secrets.DOCKER_PASSWORD }}
+
+#     # Step 4: Build the Docker image
+#     - name: Build Docker image
+#       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest -f DockerFile .
+
+#     # Step 5: Run the Docker container to ensure the image works
+#     - name: Run Streamlit container
+#       run: docker run -d -p 8501:8501 --name ipl-predictor ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest
+
+#     # Step 6: Test if the app is running using curl
+#     - name: Test if the app is running
+#       run: |
+#         sleep 15  # Wait for the app to start
+#         curl -f http://localhost:8501 || exit 1
+
+#     # Step 7: Push the Docker image to Docker Hub
+#     - name: Push Docker image
+#       run: docker push ${{ secrets.DOCKER_USERNAME }}/ipl-predictor:latest 
+#     # Step 8: Clean up the container
+#     - name: Stop and remove container
+#       run: |
+#         docker stop ipl-predictor
+#         docker rm ipl-predictor
