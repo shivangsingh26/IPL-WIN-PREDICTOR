@@ -1,4 +1,4 @@
-name: CI/CD Docker Pipeline for Truefoundry RAG Registry
+name: CI/CD Docker Pipeline for IPL Win Predictor
 
 on:
   push:
