@@ -3,7 +3,7 @@ name: CI/CD Docker Pipeline for IPL Win Predictor
 on:
   push:
     branches:
-      - main  # Adjust the branch name as needed
+      - master  # Adjust the branch name as needed
 
 jobs:
   # Job 1: Build and Test (Python code)
