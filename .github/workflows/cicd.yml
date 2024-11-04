@@ -81,12 +81,19 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/registry_ipl_win_pred:$IMAGE_TAG .
 
-    # Step 5: Test if the Docker container runs successfully (optional)
+      # Step 5: Test if the Docker container runs successfully (optional)
     - name: Run Docker container
+      env:
+        ECR_REGISTRY: 992382843941.dkr.ecr.us-east-1.amazonaws.com
+        IMAGE_TAG: ${{ github.sha }}
       run: |
+        echo "Running Docker container with:"
+        echo "ECR_REGISTRY: $ECR_REGISTRY"
+        echo "IMAGE_TAG: $IMAGE_TAG"
         docker run -d -p 8501:8501 --name registry_ipl_win_pred_test $ECR_REGISTRY/registry_ipl_win_pred:$IMAGE_TAG
         sleep 15  # Wait for the app to start
         curl -f http://localhost:8501 || exit 1  # Test the app
+
 
     # Step 6: Push the Docker image to AWS ECR
     - name: Push Docker image
