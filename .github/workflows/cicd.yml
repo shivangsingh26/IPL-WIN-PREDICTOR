@@ -59,17 +59,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Docker
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v2
+    # Step 2: Configure AWS credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
 
     # Step 3: Login to AWS ECR
     - name: Login to AWS ECR
-      uses: aws-actions/amazon-ecr-login@v1
-      with:
-        registry: 992382843941.dkr.ecr.us-east-1.amazonaws.com
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 992382843941.dkr.ecr.us-east-1.amazonaws.com
 
     # Step 4: Build the Docker image
     - name: Build Docker image
@@ -91,13 +92,18 @@ jobs:
       env:
         ECR_REGISTRY: 992382843941.dkr.ecr.us-east-1.amazonaws.com
         IMAGE_TAG: ${{ github.sha }}
-      run: docker push $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG
+      run: |
+        docker push $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG
+        # Optionally, tag as latest
+        docker tag $ECR_REGISTRY/truefoundry_rag_registry:$IMAGE_TAG $ECR_REGISTRY/truefoundry_rag_registry:latest
+        docker push $ECR_REGISTRY/truefoundry_rag_registry:latest
 
     # Step 7: Clean up the container (optional)
     - name: Stop and remove Docker container
       run: |
         docker stop truefoundry_rag_test
         docker rm truefoundry_rag_test
+
 
 # name: CI/CD Docker Pipeline for IPL-WIN-Predictor
 
