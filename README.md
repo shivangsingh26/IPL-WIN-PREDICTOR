@@ -1,10 +1,11 @@
 # IPL Win Predictor
 
-This project is an IPL (Indian Premier League) Win Predictor that utilizes machine learning models to predict the probability of a team winning a match based on current game statistics. The project includes a machine learning model implemented in Python and an interactive web application built using Streamlit.
+The IPL Win Predictor is a machine learning model that predicts the probability of a team winning an Indian Premier League (IPL) match based on current match statistics. This project includes a logistic regression model implemented in Python and an interactive web application built with Streamlit, as well as containerized deployment on AWS ECR and SageMaker.
 
 ## Table of Contents
 - [Overview](#overview)
 - [Installation](#installation)
+- [Deployment](#deployment)
 - [Usage](#usage)
 - [Files](#files)
 - [Model Details](#model-details)
@@ -14,7 +15,7 @@ This project is an IPL (Indian Premier League) Win Predictor that utilizes machi
 - [License](#license)
 
 ## Overview
-The IPL Win Predictor uses historical match data to train a logistic regression model that predicts the win probability of a batting team during a match. The web application provides an intuitive interface for users to input current match details and get real-time win probabilities.
+The IPL Win Predictor leverages historical match data to train a logistic regression model that provides real-time win probabilities based on the current state of the game. The model can be accessed through a Streamlit web app, allowing users to interactively input match details and receive win predictions.
 
 ## Installation
 To run this project locally, follow these steps:
@@ -34,7 +35,38 @@ To run this project locally, follow these steps:
 
    - The dataset can be found [here](https://www.kaggle.com/datasets/ramjidoolla/ipl-data-set).
 
-4. **`streamlit run app.py`**
+4. **Run the app locally or use run the docker container from AWS ECR:**
+   ```
+   `streamlit run app.py`
+   ```
+
+## Deployment
+
+This project is deployed using Docker containers on AWS ECR and AWS SageMaker.
+
+### Docker Image Creation and Deployment to AWS ECR
+
+1. Build Docker Image:
+   ```
+   docker build -t registry_ipl_win_pred .
+   ```
+   
+2. Push Image to AWS ECR:
+   
+   Make sure your ECR repository is set up (e.g., registry_ipl_win_pred), then push your Docker image:
+
+   ```
+   docker tag registry_ipl_win_pred:latest 992382843941.dkr.ecr.us-east-1.amazonaws.com/registry_ipl_win_pred:latest
+   docker push 992382843941.dkr.ecr.us-east-1.amazonaws.com/registry_ipl_win_pred:latest
+   ```
+
+### Deploying on AWS SageMaker
+
+1. Create a SageMaker Notebook Instance and open a terminal.
+   
+2. Execute Deployment Code in the notebook to pull the Docker image from ECR and deploy it using a SageMaker model and    endpoint.
+
+3. Access Endpoint: Once the deployment is successful, the endpoint can be accessed for predictions.
 
 ## Usage
 
@@ -50,7 +82,7 @@ To run this project locally, follow these steps:
    
 5. Click on the `Predict Probability` button to get the win probabilities for both teams.
 
-## Files Required
+## Files
 
 - **`notebook.ipynb`**: Jupyter notebook containing the data analysis and model training code.
 
@@ -100,3 +132,4 @@ The main steps in the notebook.ipynb include:
 ## License
 
 - This project is licensed under the MIT License. See the LICENSE file for more details.
+
